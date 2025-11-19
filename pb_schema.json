@@ -1,0 +1,117 @@
+[
+    {
+        "id": "dashboards_col",
+        "name": "dashboards",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "title_field",
+                "name": "title",
+                "type": "text",
+                "required": true,
+                "unique": false,
+                "options": { "min": null, "max": null, "pattern": "" }
+            },
+            {
+                "system": false,
+                "id": "desc_field",
+                "name": "description",
+                "type": "text",
+                "required": false,
+                "unique": false,
+                "options": { "min": null, "max": null, "pattern": "" }
+            },
+            {
+                "system": false,
+                "id": "roles_field",
+                "name": "roles",
+                "type": "json",
+                "required": true,
+                "unique": false,
+                "options": {}
+            },
+            {
+                "system": false,
+                "id": "theme_field",
+                "name": "theme",
+                "type": "text",
+                "required": true,
+                "unique": false,
+                "options": { "min": null, "max": null, "pattern": "" }
+            }
+        ],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": null,
+        "deleteRule": null,
+        "options": {}
+    },
+    {
+        "id": "users_col",
+        "name": "users",
+        "type": "base",
+        "system": false,
+        "schema": [
+            {
+                "system": false,
+                "id": "dash_link",
+                "name": "dashboard_id",
+                "type": "relation",
+                "required": true,
+                "unique": false,
+                "options": {
+                    "collectionId": "dashboards_col",
+                    "cascadeDelete": false,
+                    "minSelect": null,
+                    "maxSelect": 1,
+                    "displayFields": []
+                }
+            },
+            {
+                "system": false,
+                "id": "name_field",
+                "name": "name",
+                "type": "text",
+                "required": true,
+                "unique": false,
+                "options": { "min": null, "max": null, "pattern": "" }
+            },
+            {
+                "system": false,
+                "id": "role_field",
+                "name": "role",
+                "type": "text",
+                "required": true,
+                "unique": false,
+                "options": { "min": null, "max": null, "pattern": "" }
+            },
+            {
+                "system": false,
+                "id": "key1_field",
+                "name": "securityKey1",
+                "type": "text",
+                "required": true,
+                "unique": false,
+                "options": { "min": null, "max": null, "pattern": "" }
+            },
+            {
+                "system": false,
+                "id": "key2_field",
+                "name": "securityKey2",
+                "type": "text",
+                "required": true,
+                "unique": false,
+                "options": { "min": null, "max": null, "pattern": "" }
+            }
+        ],
+        "listRule": "",
+        "viewRule": "",
+        "createRule": "",
+        "updateRule": "",
+        "deleteRule": null,
+        "options": {}
+    }
+]
