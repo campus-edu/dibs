@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dibs - Role Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- POCKETBASE SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pocketbase/0.21.1/pocketbase.umd.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .selected-theme-ring { ring-width: 3px; ring-offset-width: 2px; transform: scale(1.1); }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 transition-colors duration-300">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2 font-bold text-xl cursor-pointer hover:opacity-80 transition" onclick="window.location.href='/'">
+                <i class="fa-solid fa-hand-pointer text-indigo-500" id="header-icon"></i> 
+                <span id="header-title" class="text-slate-800 tracking-tight font-extrabold">dibs.</span>
+            </div>
+            <div id="header-actions" class="hidden flex gap-2">
+                 <button onclick="copyLink()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full font-medium transition border border-slate-200 flex items-center gap-2">
+                    <i class="fa-regular fa-copy"></i> <span class="hidden sm:inline">Share Link</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto p-4 md:p-8">
+        <!-- Loading Overlay -->
+        <div id="loading-indicator" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+            <div class="text-center">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-indigo-400 mb-3"></i>
+                <p class="text-slate-500 font-medium animate-pulse">Connecting to DB...</p>
+            </div>
+        </div>
+
+        <!-- VIEW 1: CREATOR -->
+        <div id="view-create" class="hidden max-w-2xl mx-auto fade-in">
+            <div class="text-center mb-10 mt-8">
+                <span class="bg-indigo-50 text-indigo-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide mb-4 inline-block">Project Management Tool</span>
+                <h1 class="text-5xl font-extrabold text-slate-900 mt-2 mb-4 tracking-tight">Call <span class="text-indigo-600">dibs</span> on your role.</h1>
+                <p class="text-slate-500 text-lg max-w-lg mx-auto">Create a dashboard. Define roles. Share the link.</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 md:p-8 relative overflow-hidden ring-1 ring-slate-100">
+                <div class="mb-6 relative z-10">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Project Name</label>
+                    <input type="text" id="create-title" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-medium" placeholder="e.g. Hackathon Team Alpha">
+                </div>
+                <div class="mb-6 relative z-10">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Instructions</label>
+                    <textarea id="create-desc" rows="2" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" placeholder="e.g. Pick a role. Remember your security words."></textarea>
+                </div>
+                <div class="mb-6 relative z-10">
+                    <label class="block text-sm font-bold text-slate-700 mb-3">Color Theme</label>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="selectTheme('indigo')" class="theme-btn w-10 h-10 rounded-full bg-indigo-500 ring-indigo-300 selected-theme-ring shadow-sm transition transform hover:scale-105" data-color="indigo"></button>
+                        <button onclick="selectTheme('rose')" class="theme-btn w-10 h-10 rounded-full bg-rose-500 ring-rose-300 shadow-sm transition transform hover:scale-105" data-color="rose"></button>
+                        <button onclick="selectTheme('emerald')" class="theme-btn w-10 h-10 rounded-full bg-emerald-500 ring-emerald-300 shadow-sm transition transform hover:scale-105" data-color="emerald"></button>
+                        <button onclick="selectTheme('amber')" class="theme-btn w-10 h-10 rounded-full bg-amber-500 ring-amber-300 shadow-sm transition transform hover:scale-105" data-color="amber"></button>
+                        <button onclick="selectTheme('sky')" class="theme-btn w-10 h-10 rounded-full bg-sky-500 ring-sky-300 shadow-sm transition transform hover:scale-105" data-color="sky"></button>
+                    </div>
+                </div>
+                <div class="mb-8 relative z-10">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Roles (Comma Separated)</label>
+                    <textarea id="create-roles" rows="3" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-medium" placeholder="Leader, Scribe, Researcher, Presenter, Designer..."></textarea>
+                </div>
+                <button onclick="createDashboard()" id="create-btn" class="w-full bg-slate-900 hover:bg-indigo-600 text-white text-lg font-bold py-4 rounded-xl shadow-xl shadow-indigo-200 transition-all transform active:scale-[0.99]">
+                    Create Dashboard
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 2: REGISTER -->
+        <div id="view-register" class="max-w-xl mx-auto fade-in hidden pt-6">
+            <div class="text-center mb-8">
+                <h1 id="dash-title-display" class="text-3xl font-bold text-slate-900">Claim Your Role</h1>
+                <p id="dash-desc-display" class="text-slate-500 mt-2">Select your role below.</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 md:p-8 relative">
+                <button onclick="switchToDashboard()" class="absolute top-6 right-6 text-sm text-slate-400 hover:text-slate-600 flex items-center gap-1 font-medium">View Board <i class="fa-solid fa-arrow-right"></i></button>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Your Name</label>
+                    <input type="text" id="user-name" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 outline-none transition input-theme-target font-medium" placeholder="e.g. Alex Smith">
+                </div>
+                <div class="mb-6 p-5 border rounded-xl bg-opacity-40 input-bg-target border-theme-target">
+                    <label class="flex justify-between text-xs font-bold mb-2 uppercase text-theme-target tracking-wide">
+                        <span>I call dibs on...</span> <i class="fa-solid fa-hand-pointer"></i>
+                    </label>
+                    <select id="role-select" class="w-full border border-slate-300 rounded-lg px-3 py-3 bg-white outline-none cursor-pointer focus-ring-target font-bold text-slate-700">
+                        <option value="">Loading roles...</option>
+                    </select>
+                </div>
+                <div class="mb-8 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div class="flex items-center gap-2 mb-3">
+                        <label class="block text-sm font-bold text-slate-700">Security Words</label>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <input type="text" id="key-1" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-200 outline-none font-medium" placeholder="Word 1">
+                        </div>
+                        <div>
+                            <input type="text" id="key-2" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-200 outline-none font-medium" placeholder="Word 2">
+                        </div>
+                    </div>
+                </div>
+                <button onclick="submitToPB()" id="submit-btn" class="w-full text-white text-lg font-bold py-4 rounded-xl shadow-lg transition transform active:scale-[0.98] btn-theme-target flex items-center justify-center gap-2">
+                    <span>Call Dibs</span> <i class="fa-solid fa-check"></i>
+                </button>
+                <div id="full-team-msg" class="hidden mt-4 p-4 bg-slate-100 rounded-lg text-center text-slate-500 text-sm font-medium">All roles taken!</div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: DASHBOARD -->
+        <div id="view-dashboard" class="fade-in hidden pt-6">
+            <div class="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-900 tracking-tight">Team Assignments</h2>
+                    <p class="text-sm text-slate-500 mt-1 flex items-center gap-2">
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 dot-theme-target"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 dot-theme-target"></span>
+                        </span> 
+                        Real-time Updates
+                    </p>
+                </div>
+                <div id="user-status-panel" class="hidden bg-white border border-slate-200 px-5 py-3 rounded-xl shadow-sm flex items-center gap-4">
+                    <div><span class="block text-[10px] uppercase font-bold text-slate-400">You have dibs on</span><span class="text-base font-bold text-slate-800" id="my-name-display">--</span></div>
+                    <button onclick="editMySubmission()" class="text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded font-medium transition text-slate-600">Change</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <div id="assignments-list" class="grid grid-cols-1 gap-3"></div>
+                </div>
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sticky top-24">
+                        <h3 class="font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100 flex justify-between items-center">
+                            <span>Availability</span>
+                            <span id="availability-count" class="text-xs bg-slate-100 px-2 py-1 rounded-full text-slate-500 font-bold">0/0</span>
+                        </h3>
+                        <div id="availability-list" class="space-y-3"></div>
+                        <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+                            <button onclick="switchToRegister()" class="text-sm font-bold link-theme-target hover:underline flex items-center justify-center gap-1 mx-auto">Call Dibs <i class="fa-solid fa-hand-pointer"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- POCKETBASE INIT ---
+        // Since HTML is served from PocketBase public dir, URL is relative
+        const pb = new PocketBase('/'); 
+
+        // --- STATE ---
+        let dashboardId = null; // This is now the RECORD ID from PocketBase
+        let dashboardRecord = null;
+        let currentUsers = [];
+        let selectedTheme = 'indigo';
+
+        async function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            dashboardId = urlParams.get('id');
+
+            if (dashboardId) {
+                // PARTICIPANT MODE
+                document.getElementById('loading-indicator').classList.remove('hidden');
+                try {
+                    // 1. Fetch Dashboard Config
+                    dashboardRecord = await pb.collection('dashboards').getOne(dashboardId);
+                    
+                    // 2. Update UI
+                    document.title = `dibs | ${dashboardRecord.title}`;
+                    document.getElementById('dash-title-display').innerText = dashboardRecord.title;
+                    document.getElementById('dash-desc-display').innerText = dashboardRecord.description || "Select your role.";
+                    document.getElementById('header-actions').classList.remove('hidden');
+                    applyTheme(dashboardRecord.theme);
+
+                    // 3. Initial Data Fetch
+                    await refreshData();
+
+                    // 4. REAL-TIME SUBSCRIPTION (The magic of PocketBase)
+                    // We subscribe to everything in the 'users' collection
+                    pb.collection('users').subscribe('*', function(e) {
+                        // e.action is 'create', 'update', or 'delete'
+                        // Ideally we just patch the array, but for simplicity we refresh
+                        refreshData(); 
+                    });
+
+                    // 5. Routing
+                    const savedUser = JSON.parse(sessionStorage.getItem(`user_${dashboardId}`) || '{}');
+                    if (savedUser.name) switchToDashboard();
+                    else switchToRegister();
+
+                } catch (err) {
+                    alert("Dashboard not found or invalid ID.");
+                    window.location.href = '/';
+                }
+                document.getElementById('loading-indicator').classList.add('hidden');
+
+            } else {
+                // CREATOR MODE
+                document.getElementById('view-create').classList.remove('hidden');
+            }
+        }
+
+        // --- API INTERACTIONS ---
+
+        async function createDashboard() {
+            const title = document.getElementById('create-title').value;
+            const desc = document.getElementById('create-desc').value;
+            const rolesStr = document.getElementById('create-roles').value;
+            const btn = document.getElementById('create-btn');
+
+            if (!title || !rolesStr) return alert("Title and Roles are required.");
+
+            const roles = rolesStr.split(',').map(r => r.trim()).filter(r => r.length > 0);
+            
+            btn.innerHTML = 'Creating...';
+            btn.disabled = true;
+
+            try {
+                const record = await pb.collection('dashboards').create({
+                    title: title,
+                    description: desc,
+                    roles: roles, // PB stores JSON automatically
+                    theme: selectedTheme
+                });
+                window.location.href = `/?id=${record.id}`;
+            } catch (err) {
+                alert("Error creating dashboard: " + err.message);
+                btn.innerHTML = 'Create Dashboard';
+                btn.disabled = false;
+            }
+        }
+
+        async function refreshData() {
+            try {
+                // Fetch all users linked to this dashboard
+                const records = await pb.collection('users').getList(1, 50, {
+                    filter: `dashboard_id = "${dashboardId}"`,
+                    sort: '-created'
+                });
+                currentUsers = records.items;
+                renderDashboard(currentUsers);
+                updateRoleDropdown(currentUsers);
+            } catch (err) { console.error(err); }
+        }
+
+        async function submitToPB() {
+            const name = document.getElementById('user-name').value.trim();
+            const role = document.getElementById('role-select').value;
+            const key1 = document.getElementById('key-1').value.trim();
+            const key2 = document.getElementById('key-2').value.trim();
+
+            if (!name || !role || !key1 || !key2) return alert("All fields are required.");
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+
+            try {
+                // 1. Check if Role is taken (Concurrency check)
+                // We filter locally or via API. API is safer.
+                const takenCheck = await pb.collection('users').getList(1, 1, {
+                    filter: `dashboard_id="${dashboardId}" && role="${role}" && name!="${name}"`
+                });
+
+                if (takenCheck.items.length > 0) {
+                    throw new Error(`Role '${role}' was just taken by ${takenCheck.items[0].name}!`);
+                }
+
+                // 2. Check if User exists (Update vs Create)
+                const userCheck = await pb.collection('users').getList(1, 1, {
+                    filter: `dashboard_id="${dashboardId}" && name="${name}"`
+                });
+
+                if (userCheck.items.length > 0) {
+                    // UPDATE MODE
+                    const existingUser = userCheck.items[0];
+                    // Security Check
+                    if (existingUser.securityKey1 !== key1 || existingUser.securityKey2 !== key2) {
+                        throw new Error("Security keys do not match. Cannot update.");
+                    }
+                    
+                    await pb.collection('users').update(existingUser.id, { role, securityKey1: key1, securityKey2: key2 });
+                } else {
+                    // CREATE MODE
+                    await pb.collection('users').create({
+                        dashboard_id: dashboardId,
+                        name, role, securityKey1: key1, securityKey2: key2
+                    });
+                }
+
+                sessionStorage.setItem(`user_${dashboardId}`, JSON.stringify({ name, key1, key2 }));
+                switchToDashboard();
+                // Note: Subscription will auto-update the UI
+
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // --- UI LOGIC (Mostly same as before) ---
+        
+        function selectTheme(color) {
+            selectedTheme = color;
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('selected-theme-ring');
+                if (btn.dataset.color === color) btn.classList.add('selected-theme-ring');
+            });
+        }
+
+        function updateRoleDropdown(users) {
+            const select = document.getElementById('role-select');
+            const currentVal = select.value;
+            const myName = JSON.parse(sessionStorage.getItem(`user_${dashboardId}`) || '{}').name;
+
+            const takenRoles = users.filter(u => u.name !== myName).map(u => u.role);
+            const availableRoles = dashboardRecord.roles.filter(r => !takenRoles.includes(r));
+
+            select.innerHTML = '<option value="">-- Select a Role --</option>';
+            availableRoles.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r; opt.textContent = r;
+                select.appendChild(opt);
+            });
+
+            if (availableRoles.includes(currentVal)) select.value = currentVal;
+        }
+
+        function renderDashboard(users) {
+            const list = document.getElementById('assignments-list');
+            const availList = document.getElementById('availability-list');
+            const myName = JSON.parse(sessionStorage.getItem(`user_${dashboardId}`) || '{}').name;
+            const theme = dashboardRecord.theme;
+
+            list.innerHTML = '';
+            if (users.length === 0) list.innerHTML = `<div class="text-center py-12 bg-slate-50 rounded-xl border-dashed border-2 border-slate-200 text-slate-400">No dibs yet.</div>`;
+
+            users.forEach(u => {
+                const isMe = u.name === myName;
+                const borderClass = isMe ? `border-${theme}-300 ring-2 ring-${theme}-100` : `border-slate-200`;
+                const badgeClass = isMe ? `bg-${theme}-600 text-white` : `bg-slate-100 text-slate-600`;
+
+                list.innerHTML += `
+                    <div class="bg-white ${borderClass} p-4 rounded-xl border shadow-sm flex justify-between items-center">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">${u.name.charAt(0).toUpperCase()}</div>
+                            <div>
+                                <div class="font-bold text-slate-800 text-lg">${u.name}</div>
+                                <div class="text-xs text-slate-400">Dibs called at ${new Date(u.created).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Role</span>
+                            <span class="px-3 py-1 rounded-lg font-bold text-sm ${badgeClass}">${u.role}</span>
+                        </div>
+                    </div>`;
+            });
+
+            availList.innerHTML = '';
+            const takenMap = {};
+            users.forEach(u => takenMap[u.role] = u.name);
+            let openCount = 0;
+
+            dashboardRecord.roles.forEach(r => {
+                if (takenMap[r]) {
+                    availList.innerHTML += `<div class="flex justify-between py-2 border-b border-slate-50"><span class="text-slate-400 line-through">${r}</span><span class="text-xs text-slate-400"><i class="fa-solid fa-lock"></i> Taken</span></div>`;
+                } else {
+                    openCount++;
+                    availList.innerHTML += `<div class="flex justify-between py-2 border-b border-slate-50"><span class="font-medium text-slate-700">${r}</span><span class="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase">Open</span></div>`;
+                }
+            });
+            document.getElementById('availability-count').textContent = `${openCount}/${dashboardRecord.roles.length} Open`;
+        }
+
+        function applyTheme(color) {
+            document.querySelector('.btn-theme-target').classList.add(`bg-${color}-600`, `hover:bg-${color}-700`);
+            document.querySelector('.input-bg-target').classList.add(`bg-${color}-50`, `border-${color}-200`);
+            document.querySelector('.text-theme-target').classList.add(`text-${color}-600`);
+            document.querySelectorAll('.focus-ring-target').forEach(el => el.classList.add(`focus:ring-${color}-500`, `focus:ring-2`));
+            document.querySelector('.input-theme-target').classList.add(`focus:ring-${color}-500`, `focus:ring-2`);
+            document.querySelectorAll('.link-theme-target').forEach(el => el.classList.add(`text-${color}-600`));
+            document.querySelectorAll('.dot-theme-target').forEach(el => el.classList.add(`bg-${color}-500`));
+            document.getElementById('header-icon').classList.remove('text-indigo-500');
+            document.getElementById('header-icon').classList.add(`text-${color}-500`);
+        }
+
+        function switchToRegister() {
+            document.getElementById('view-register').classList.remove('hidden');
+            document.getElementById('view-dashboard').classList.add('hidden');
+            const session = JSON.parse(sessionStorage.getItem(`user_${dashboardId}`) || '{}');
+            if(session.name) {
+                document.getElementById('user-name').value = session.name;
+                document.getElementById('key-1').value = session.key1 || '';
+                document.getElementById('key-2').value = session.key2 || '';
+            }
+        }
+
+        function switchToDashboard() {
+            document.getElementById('view-register').classList.add('hidden');
+            document.getElementById('view-dashboard').classList.remove('hidden');
+            const session = JSON.parse(sessionStorage.getItem(`user_${dashboardId}`) || '{}');
+            if(session.name) {
+                document.getElementById('user-status-panel').classList.remove('hidden');
+                document.getElementById('my-name-display').textContent = session.name;
+            }
+        }
+
+        function editMySubmission() { switchToRegister(); }
+        
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href);
+            const btn = document.querySelector('#header-actions button span');
+            const original = btn.innerHTML;
+            btn.innerHTML = 'Copied!';
+            setTimeout(() => btn.innerHTML = original, 2000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
